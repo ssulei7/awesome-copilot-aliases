@@ -1,0 +1,199 @@
+name: Test Aliases
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-bash:
+    name: Test Bash Aliases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Bash
+      run: |
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          brew install bash
+        fi
+    
+    - name: Source aliases
+      shell: bash
+      run: |
+        source shells/bash/copilot-aliases.bash
+        source shells/bash/completions.bash
+        echo "✓ Aliases loaded successfully"
+    
+    - name: Test alias functions exist
+      shell: bash
+      run: |
+        source shells/bash/copilot-aliases.bash
+        for cmd in cpcommit cppush cppull cprevert cpbranch cplog cpstatus cppr cpprs cpissue cpissues cpmerge cpreview cptest cpfix cpbuild cpexplain cpdocs cprefactor cphelp cpdebug cpoptimize; do
+          if ! type "$cmd" &>/dev/null; then
+            echo "✗ Function $cmd not found"
+            exit 1
+          fi
+          echo "✓ Function $cmd exists"
+        done
+    
+    - name: Test help command
+      shell: bash
+      run: |
+        source shells/bash/copilot-aliases.bash
+        cphelp
+
+  test-zsh:
+    name: Test Zsh Aliases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Zsh
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y zsh
+        fi
+    
+    - name: Source aliases
+      shell: zsh {0}
+      run: |
+        source shells/zsh/copilot-aliases.zsh
+        fpath=(shells/zsh $fpath)
+        echo "✓ Aliases loaded successfully"
+    
+    - name: Test alias functions exist
+      shell: zsh {0}
+      run: |
+        source shells/zsh/copilot-aliases.zsh
+        for cmd in cpcommit cppush cppull cprevert cpbranch cplog cpstatus cppr cpprs cpissue cpissues cpmerge cpreview cptest cpfix cpbuild cpexplain cpdocs cprefactor cphelp cpdebug cpoptimize; do
+          if ! type "$cmd" &>/dev/null; then
+            echo "✗ Function $cmd not found"
+            exit 1
+          fi
+          echo "✓ Function $cmd exists"
+        done
+    
+    - name: Test help command
+      shell: zsh {0}
+      run: |
+        source shells/zsh/copilot-aliases.zsh
+        cphelp
+
+  test-fish:
+    name: Test Fish Aliases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Fish
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-add-repository ppa:fish-shell/release-3
+          sudo apt-get update
+          sudo apt-get install -y fish
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          brew install fish
+        fi
+    
+    - name: Source aliases
+      shell: fish {0}
+      run: |
+        source shells/fish/copilot-aliases.fish
+        source shells/fish/completions.fish
+        echo "✓ Aliases loaded successfully"
+    
+    - name: Test alias functions exist
+      shell: fish {0}
+      run: |
+        source shells/fish/copilot-aliases.fish
+        for cmd in cpcommit cppush cppull cprevert cpbranch cplog cpstatus cppr cpprs cpissue cpissues cpmerge cpreview cptest cpfix cpbuild cpexplain cpdocs cprefactor cphelp cpdebug cpoptimize
+          if not type -q $cmd
+            echo "✗ Function $cmd not found"
+            exit 1
+          end
+          echo "✓ Function $cmd exists"
+        end
+    
+    - name: Test help command
+      shell: fish {0}
+      run: |
+        source shells/fish/copilot-aliases.fish
+        cphelp
+
+  test-powershell:
+    name: Test PowerShell Aliases
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Source aliases
+      shell: pwsh
+      run: |
+        . ./shells/powershell/copilot-aliases.ps1
+        . ./shells/powershell/completions.ps1
+        Write-Host "✓ Aliases loaded successfully"
+    
+    - name: Test alias functions exist
+      shell: pwsh
+      run: |
+        . ./shells/powershell/copilot-aliases.ps1
+        $commands = @('cpcommit', 'cppush', 'cppull', 'cprevert', 'cpbranch', 'cplog', 'cpstatus', 'cppr', 'cpprs', 'cpissue', 'cpissues', 'cpmerge', 'cpreview', 'cptest', 'cpfix', 'cpbuild', 'cpexplain', 'cpdocs', 'cprefactor', 'cphelp', 'cpdebug', 'cpoptimize')
+        foreach ($cmd in $commands) {
+          if (!(Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            Write-Error "✗ Function $cmd not found"
+            exit 1
+          }
+          Write-Host "✓ Function $cmd exists"
+        }
+    
+    - name: Test help command
+      shell: pwsh
+      run: |
+        . ./shells/powershell/copilot-aliases.ps1
+        cphelp
+
+  lint:
+    name: Lint Shell Scripts
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run ShellCheck on Bash scripts
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './shells/bash'
+        severity: warning
+    
+    - name: Run ShellCheck on Zsh scripts
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './shells/zsh'
+        severity: warning
+    
+    - name: Run ShellCheck on install script
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: '.'
+        severity: warning
+        check_together: 'yes'
+        additional_files: 'install.sh'
